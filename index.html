@@ -22,9 +22,16 @@ select,button{font:inherit;border-radius:12px;padding:11px 14px;border:1px solid
 const state={words:[],pool:[],i:0,revealed:false,timer:null,left:10};const $=id=>document.getElementById(id);
 async function load(){ $("app").innerHTML="<div class='muted'>Loading vocabulary…</div>";const r=await fetch("data/words.json?"+Date.now());if(!r.ok)throw Error("Vocabulary data unavailable");state.words=await r.json();$("app").innerHTML="<div class='muted'>Ready — choose a set and press Start.</div>";}
 function speak(w){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w);u.lang="en-US";u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+function makeHint(word,count){
+  const letters=Array.from(word);
+  const positions=Array.from({length:letters.length},(_,i)=>i).sort(()=>Math.random()-.5).slice(0,Math.min(count,letters.length)).sort((a,b)=>a-b);
+  const revealed=new Set(positions);
+  return letters.map((ch,i)=>revealed.has(i)?ch:"_").join(" ");
+}
 function start(){const set=$("set").value;state.pool=state.words.filter(x=>set==="All"||x.sets.includes(set)).sort(()=>Math.random()-.5).slice(0,20);state.i=0;show()}
 function show(){clearInterval(state.timer);state.revealed=false;state.left=10;const w=state.pool[state.i];if(!w){$("app").innerHTML="<b>Session complete.</b><br><br><button onclick='start()' class='primary'>Start again</button>";return}
-$("app").innerHTML=`<div class="muted">Word ${state.i+1} / ${state.pool.length}</div><div class="prompt-label">Vietnamese meaning</div><div class="prompt">${esc(w.meaning||"Vietnamese meaning unavailable")}</div><div class="hint">Hint: ${esc(w.hint||"")}</div><div class="timer"><i id="bar"></i></div><button id="reveal" class="primary">Reveal answer</button><div id="detail"></div>`;
+const hint=makeHint(w.word,w.hint_count||1);
+$("app").innerHTML=`<div class="muted">Word ${state.i+1} / ${state.pool.length}</div><div class="prompt-label">Vietnamese meaning</div><div class="prompt">${esc(w.meaning||"Vietnamese meaning unavailable")}</div><div class="hint">Hint: ${esc(hint)}</div><div class="timer"><i id="bar"></i></div><button id="reveal" class="primary">Reveal answer</button><div id="detail"></div>`;
 state.timer=setInterval(()=>{state.left-=.1;document.getElementById("bar").style.width=Math.max(0,state.left/10*100)+"%";if(state.left<=0){clearInterval(state.timer);reveal()}},100)}
 function reveal(){if(state.revealed)return;state.revealed=true;clearInterval(state.timer);const w=state.pool[state.i];$("detail").innerHTML=`<div class="answer"><div><b>${esc(w.word)}</b> <span class="badge">${esc(w.pos||"")}</span></div><div class="ipa">${esc(w.ipa||"")}</div><button onclick='speak(${JSON.stringify(w.word)})'>🔊 Hear pronunciation</button><div class="meaning">${esc(w.meaning||"")}</div>${w.example?`<div class="example">${esc(w.example)}</div>`:""}<div>${w.sets.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div><br><button onclick='next()' class="primary">Next</button></div>`;speak(w.word)}
 function next(){if(!state.revealed)return;state.i++;show()}
