@@ -443,11 +443,8 @@ out=[]
 for x in words.values():
     x.update(lookup(x["word"]))
     x["cefr_level"]=x.get("oxford_level") or x.get("frequency_level","")
-    x["hint"]=(
-        x["word"][:1]+"…"+x["word"][-1:] if len(x["word"])<=4 else
-        x["word"][:2]+"…"+x["word"][-1:] if len(x["word"])<=7 else
-        x["word"][:3]+"…"+x["word"][-1:]
-    )
+    n=len(x["word"])
+    x["hint_count"]=1 if n<=5 else 2 if n<=9 else 3 if n<=14 else 4
     out.append(x)
 
 json.dump(out,open(os.path.join(DATA,"words.json"),"w",encoding="utf-8"),ensure_ascii=False,separators=(",",":"))
