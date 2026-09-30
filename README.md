@@ -12,11 +12,11 @@ Personal/free English vocabulary recall practice app.
 ## Data pipeline
 The GitHub Actions build downloads the NGSL 1.2, TSL 1.2 and BSL 1.2 word lists and enriches matching entries from the Skypedia English–Vietnamese SQLite dictionary.
 
-For learner-facing primary meaning selection, the build uses the Oxford 3000/5000 PDFs as a **build-time reference for part of speech priority only**. For example, when a word has several dictionary senses across different parts of speech, the build prefers the sense matching the lowest-level Oxford POS. This helps avoid cases such as choosing a rare noun/verb sense when the learner is studying the common lexical role.
+For learner-facing prioritisation, the build uses the **American Oxford 3000/5000** as the primary reference for CEFR level and part of speech. It also applies a learner-first meaning layer for common words where a raw dictionary's first sense is misleading for everyday learning (for example, `dinner` is presented as **bữa tối** for American-English learners).
 
-Oxford definitions, examples, audio and the Oxford word-list itself are **not copied into the public app data**. The app continues to use the CC BY-SA Skypedia data for Vietnamese meanings, examples and IPA.
+Oxford definitions, examples, audio and the Oxford word-list itself are **not copied into the public app data**. The app continues to use the CC BY-SA Skypedia data for Vietnamese meanings, examples and IPA, with original curated glosses/examples for selected high-frequency learner words.
 
-The A1–C2 labels in this MVP remain the existing frequency-based bands. They are not official CEFR classifications yet. The next data step can use an openly redistributable CEFR source to replace those provisional bands.
+The app now uses the American Oxford 3000/5000 word lists as the primary CEFR/POS reference when a word is covered by Oxford. NGSL/TSL/BSL frequency/category metadata remains available as supporting information, and the previous frequency band is retained as a fallback for words not covered by Oxford.
 
 Sources:
 - https://www.newgeneralservicelist.com/
