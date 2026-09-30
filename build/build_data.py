@@ -43,13 +43,14 @@ def rows(raw):
 
 def norm_oxford_pos(pos):
     p=(pos or "").lower().strip()
+    p=p.rstrip(".").strip()
     if "modal v" in p or "auxiliary" in p or p in ("v","verb"):
         return "V"
     if "adj" in p or p=="adjective":
         return "A"
     if "adv" in p or p=="adverb":
         return "ADV"
-    if p in ("n","n.","noun"):
+    if p in ("n","noun"):
         return "N"
     if "prep" in p or p=="preposition":
         return "PREP"
@@ -57,10 +58,12 @@ def norm_oxford_pos(pos):
         return "CONJ"
     if "pron" in p or p=="pronoun":
         return "PRON"
-    if "det" in p or p=="determiner":
+    if "det" in p or p=="determiner" or "article" in p:
         return "DET"
     if "exclam" in p or p=="exclamation":
         return "EXCL"
+    if "number" in p:
+        return "NUM"
     return ""
 
 def parse_oxford_pdf(raw, list_name):
@@ -143,6 +146,136 @@ open(db,"wb").write(download(DB_URL))
 c=sqlite3.connect(db)
 q=c.cursor()
 
+# Learner-first primary meanings for the most frequent NGSL words.
+# These are original short Vietnamese glosses, not copied dictionary text.
+# They intentionally replace misleading/rare first senses from legacy source data.
+PRIMARY_OVERRIDES={
+    "the":("Mạo từ xác định; dùng trước người/vật đã xác định.","DET"),
+    "be":("Là; thì; ở.","V"),
+    "and":("Và.","CONJ"),
+    "of":("Của; về.","PREP"),
+    "to":("Đến; tới; để.","PREP"),
+    "a":("Một; một cái/người nào đó.","DET"),
+    "in":("Trong; ở trong; vào.","PREP"),
+    "have":("Có.","V"),
+    "it":("Nó; điều đó.","PRON"),
+    "you":("Bạn; anh/chị; các bạn.","PRON"),
+    "he":("Anh ấy; ông ấy; nó (giống đực).","PRON"),
+    "for":("Cho; dành cho; đối với.","PREP"),
+    "they":("Họ; chúng.","PRON"),
+    "not":("Không.","ADV"),
+    "that":("Đó; kia; rằng.","DET"),
+    "we":("Chúng tôi; chúng ta.","PRON"),
+    "on":("Trên; ở trên; vào (ngày/thời điểm).","PREP"),
+    "with":("Với; cùng với; bằng.","PREP"),
+    "this":("Này; cái này; điều này.","DET"),
+    "i":("Tôi.","PRON"),
+    "do":("Làm; thực hiện.","V"),
+    "as":("Như; khi; vì.","PREP"),
+    "at":("Ở; tại; vào (thời gian).","PREP"),
+    "she":("Cô ấy; bà ấy; nó (giống cái).","PRON"),
+    "but":("Nhưng.","CONJ"),
+    "from":("Từ; xuất phát từ.","PREP"),
+    "by":("Bởi; bằng; gần.","PREP"),
+    "will":("Sẽ.","V"),
+    "or":("Hoặc; hay.","CONJ"),
+    "say":("Nói; bảo; cho biết.","V"),
+    "go":("Đi; đi đến.","V"),
+    "so":("Rất; như vậy; vì thế.","ADV"),
+    "all":("Tất cả; mọi.","DET"),
+    "if":("Nếu.","CONJ"),
+    "one":("Một; một người/vật.","NUM"),
+    "would":("Sẽ (trong câu điều kiện hoặc lời nói gián tiếp).","V"),
+    "about":("Về; khoảng; xung quanh.","PREP"),
+    "can":("Có thể.","V"),
+    "which":("Nào; cái nào; điều nào.","PRON"),
+    "there":("Ở đó; có.","ADV"),
+    "know":("Biết; hiểu.","V"),
+    "more":("Nhiều hơn; thêm.","DET"),
+    "get":("Có được; nhận được; trở nên.","V"),
+    "who":("Ai; người nào.","PRON"),
+    "like":("Thích; muốn.","V"),
+    "when":("Khi nào; khi.","ADV"),
+    "think":("Nghĩ; suy nghĩ.","V"),
+    "make":("Làm; tạo ra.","V"),
+    "time":("Thời gian; lần.","N"),
+    "see":("Thấy; nhìn thấy; xem.","V"),
+    "what":("Gì; cái gì; điều gì.","PRON"),
+    "up":("Lên; ở trên; dậy.","ADV"),
+    "some":("Một vài; một ít; một số.","DET"),
+    "other":("Khác.","A"),
+    "out":("Ra ngoài; ở ngoài.","ADV"),
+    "good":("Tốt; hay; tuyệt.","A"),
+    "people":("Người; mọi người.","N"),
+    "year":("Năm.","N"),
+    "take":("Lấy; cầm; mang.","V"),
+    "no":("Không; không có.","DET"),
+    "well":("Tốt; khỏe; tốt đẹp.","ADV"),
+    "because":("Bởi vì; vì.","CONJ"),
+    "very":("Rất.","ADV"),
+    "just":("Chỉ; vừa mới; đúng.","ADV"),
+    "come":("Đến; tới.","V"),
+    "could":("Có thể (quá khứ của can).","V"),
+    "work":("Làm việc; công việc.","N"),
+    "use":("Dùng; sử dụng.","V"),
+    "than":("Hơn; so với.","CONJ"),
+    "now":("Bây giờ; hiện tại.","ADV"),
+    "then":("Sau đó; lúc đó; khi ấy.","ADV"),
+    "also":("Cũng.","ADV"),
+    "into":("Vào; vào trong.","PREP"),
+    "only":("Chỉ; duy nhất; mới.","ADV"),
+    "look":("Nhìn; xem.","V"),
+    "want":("Muốn.","V"),
+    "give":("Cho; đưa; tặng.","V"),
+    "first":("Đầu tiên; thứ nhất.","ADV"),
+    "new":("Mới.","A"),
+    "way":("Cách; phương pháp; con đường.","N"),
+    "find":("Tìm; tìm thấy.","V"),
+    "over":("Trên; hơn; qua.","PREP"),
+    "any":("Bất kỳ; nào.","DET"),
+    "after":("Sau; sau khi.","PREP"),
+    "day":("Ngày.","N"),
+    "where":("Ở đâu; nơi nào.","ADV"),
+    "thing":("Cái; vật; điều; việc.","N"),
+    "most":("Nhất; phần lớn.","ADV"),
+    "should":("Nên; cần phải.","V"),
+    "need":("Cần; nhu cầu.","V"),
+    "much":("Nhiều; rất nhiều.","DET"),
+    "right":("Đúng; phải; bên phải.","A"),
+    "how":("Như thế nào; làm sao.","ADV"),
+    "back":("Lưng; phía sau; trở lại.","N"),
+    "mean":("Có nghĩa là; có ý muốn nói.","V"),
+    "even":("Thậm chí; ngay cả; đều.","ADV"),
+    "may":("Có thể; có lẽ; được phép.","V"),
+    "here":("Ở đây; đây.","ADV"),
+    "many":("Nhiều; nhiều người/vật.","DET"),
+    "such":("Như vậy; như thế; loại như vậy.","DET")
+}
+
+PRIMARY_EXAMPLE_OVERRIDES={
+    "the":"The book is on the table.",
+    "be":"I want to be a project manager.",
+    "have":"I have two children.",
+    "do":"I do my work every morning.",
+    "go":"We go to work at eight.",
+    "get":"I need to get some coffee.",
+    "make":"Let's make a plan.",
+    "see":"I can see the problem now.",
+    "good":"That was a very good movie.",
+    "take":"Please take this document to the meeting.",
+    "come":"Please come to my office.",
+    "work":"I work from Monday to Friday.",
+    "use":"Can I use your laptop?",
+    "look":"Look at this example.",
+    "want":"I want to improve my English.",
+    "give":"Please give me a minute.",
+    "find":"I need to find the right answer.",
+    "need":"We need more time.",
+    "back":"Please come back tomorrow.",
+    "mean":"What does this word mean?",
+    "may":"May I ask a question?"
+}
+
 def clean_meaning(text):
     text=(text or "").strip()
 
@@ -156,8 +289,10 @@ def clean_meaning(text):
         return m.group(0)
 
     text=re.sub(r"\(([^()]*)\)",repl,text)
+    text=re.sub(r"^\s*\([^)]*\)\s*","",text)
+    text=re.sub(r"^\s*\+[^)]*\)\s*","",text)
     text=re.sub(r"\s{2,}"," ",text).strip()
-    text=re.sub(r"^[,;:\-]\s*","",text)
+    text=re.sub(r"^[,;:\-\+]\s*","",text)
     return text
 
 def pos_key(pos):
@@ -192,18 +327,27 @@ def lookup(w):
 
     selected=None
     ox_pos=preferred_oxford_pos.get(w.lower())
-    if ox_pos:
-        selected=next((s for s in candidates if pos_key(s[1])==ox_pos),None)
 
-    if selected is None and candidates:
-        selected=candidates[0]
-
-    if selected:
-        meaning=clean_meaning(selected[0] or "")
-        pos=selected[1] or ""
-        example=selected[2] or ""
+    override=PRIMARY_OVERRIDES.get(w.lower())
+    if override:
+        meaning,pos=override
+        example=PRIMARY_EXAMPLE_OVERRIDES.get(w.lower(),"")
     else:
-        meaning=pos=example=""
+        if ox_pos:
+            selected=next((s for s in candidates if pos_key(s[1])==ox_pos),None)
+
+        if selected is None and candidates:
+            selected=candidates[0]
+
+        if selected:
+            meaning=clean_meaning(selected[0] or "")
+            pos=ox_pos or (selected[1] or "")
+            example=selected[2] or ""
+        else:
+            meaning=pos=example=""
+
+    if ox_pos and not override:
+        pos=ox_pos
 
     q.execute(
         "SELECT ipa FROM pronunciations WHERE word_id=? "
