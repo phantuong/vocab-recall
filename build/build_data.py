@@ -16,8 +16,8 @@ DB_URL="https://raw.githubusercontent.com/skypediacode/english-vietnamese-dictio
 # prioritisation. We do not copy Oxford definitions, examples, audio or the
 # Oxford word-list itself into the public app data.
 OXFORD_URLS=[
-    ("Oxford 3000","https://www.oxfordlearnersdictionaries.com/external/pdf/wordlists/oxford-3000-5000/The_Oxford_3000.pdf"),
-    ("Oxford 5000","https://www.oxfordlearnersdictionaries.com/external/pdf/wordlists/oxford-3000-5000/The_Oxford_5000.pdf"),
+    ("American Oxford 3000","https://www.oxfordlearnersdictionaries.com/external/pdf/wordlists/oxford-3000-5000/American_Oxford_3000.pdf"),
+    ("American Oxford 5000","https://www.oxfordlearnersdictionaries.com/external/pdf/wordlists/oxford-3000-5000/American_Oxford_5000.pdf"),
 ]
 
 def download(url):
@@ -76,7 +76,7 @@ def parse_oxford_pdf(raw, list_name):
     levels={"A1":1,"A2":2,"B1":3,"B2":4,"C1":5}
     # The official PDFs put each entry on one line, ending with one or more
     # POS/CEFR pairs, e.g. "good adj. A1" or "academic adj.B1, n. B2".
-    pos_pat=r"(?:adj\.?|adv\.?|n\.?|v\.?|prep\.?|conj\.?|pron\.?|det\.?|exclam\.?|number|modal v\.?|auxiliary v\.?)"
+    pos_pat=r"(?:adj\.?|adv\.?|n\.?|v\.?|prep\.?|conj\.?|pron\.?|det\.?|exclam\.?|number|ordinal number|modal v\.?|modal verb|auxiliary v\.?|auxiliary verb)"
     pair_re=re.compile(r"("+pos_pat+r")\s*([ABC][12])")
     for raw_line in text.splitlines():
         line=re.sub(r"\s+"," ",raw_line).strip()
@@ -118,14 +118,15 @@ for src,rs in lists.items():
 
 for x in words.values():
     r=x["ngsl_rank"]
-    # Keep the existing frequency bands as a fallback classification.
-    x["sets"].append(
+    fallback_level=(
         "A1" if r and r<=600 else
         "B1" if r and r<=1300 else
         "B2" if r and r<=2000 else
         "C1" if r and r<=2500 else
         "C2"
     )
+    x["frequency_level"]=fallback_level
+    x["sets"].append(preferred_oxford_level.get(x["word"].lower(),fallback_level))
 
 oxford_pos={}
 for list_name,url in OXFORD_URLS:
@@ -137,9 +138,11 @@ for list_name,url in OXFORD_URLS:
 # the lowest CEFR level. This mirrors a learner-first priority without copying
 # Oxford definitions into the app.
 preferred_oxford_pos={}
+preferred_oxford_level={}
 for key,recs in oxford_pos.items():
-    recs=sorted(recs,key=lambda r:(r[0],0 if r[1]=="Oxford 3000" else 1,r[2]))
+    recs=sorted(recs,key=lambda r:(r[0],0 if "3000" in r[1] else 1,r[2]))
     preferred_oxford_pos[key]=recs[0][2]
+    preferred_oxford_level[key]=recs[0][3]
 
 db=os.path.join(DATA,"dictionary_en_vi.db")
 open(db,"wb").write(download(DB_URL))
@@ -275,7 +278,12 @@ PRIMARY_OVERRIDES={
     "front":("Phía trước; mặt trước.","N"),
     "black":("Đen; màu đen.","A"),
     "sell":("Bán.","V"),
-    "party":("Bữa tiệc; nhóm; đảng.","N")
+    "party":("Bữa tiệc; nhóm; đảng.","N"),
+    "breakfast":("Bữa sáng.","N"),
+    "lunch":("Bữa trưa.","N"),
+    "dinner":("Bữa tối; bữa ăn chính trong ngày.","N"),
+    "supper":("Bữa tối; bữa ăn tối không trang trọng.","N"),
+    "meal":("Bữa ăn.","N")
 }
 
 PRIMARY_EXAMPLE_OVERRIDES={
@@ -322,7 +330,12 @@ PRIMARY_EXAMPLE_OVERRIDES={
     "front":"Please wait in front of the building.",
     "black":"He is wearing a black shirt.",
     "sell":"They sell cars in Hanoi.",
-    "party":"We had a small party last night."
+    "party":"We had a small party last night.",
+    "breakfast":"I have breakfast at seven.",
+    "lunch":"I usually have lunch at noon.",
+    "dinner":"We are having dinner at a nice restaurant.",
+    "supper":"We had an early supper tonight.",
+    "meal":"We had a good meal at the restaurant."
 }
 
 def clean_meaning(text):
@@ -372,6 +385,8 @@ def lookup(w):
                 "pos":override[1],
                 "example":PRIMARY_EXAMPLE_OVERRIDES.get(w.lower(),""),
                 "ipa":"",
+                "oxford_level":preferred_oxford_level.get(w.lower(),""),
+                "oxford_pos":preferred_oxford_pos.get(w.lower(),""),
             }
         return {}
 
@@ -421,10 +436,13 @@ def lookup(w):
         "pos":pos,
         "example":example,
         "ipa":p[0] if p else "",
+        "oxford_level":preferred_oxford_level.get(w.lower(),""),
+        "oxford_pos":preferred_oxford_pos.get(w.lower(),""),
     }
 out=[]
 for x in words.values():
     x.update(lookup(x["word"]))
+    x["cefr_level"]=x.get("oxford_level") or x.get("frequency_level","")
     x["hint"]=(
         x["word"][:1]+"…"+x["word"][-1:] if len(x["word"])<=4 else
         x["word"][:2]+"…"+x["word"][-1:] if len(x["word"])<=7 else
