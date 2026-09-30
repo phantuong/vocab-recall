@@ -7,10 +7,10 @@
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f7fb}
 body{margin:0}.wrap{max-width:720px;margin:auto;padding:24px 16px 40px}.card{background:white;border-radius:20px;padding:24px;box-shadow:0 8px 30px #00000012}
-h1{margin:0 0 18px;font-size:28px}.muted{color:#667085}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+h1{margin:0 0 18px;font-size:28px;text-align:center}.muted{color:#667085}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
 select,button{font:inherit;border-radius:12px;padding:11px 14px;border:1px solid #d0d5dd;background:white}button{cursor:pointer}.primary{background:#172033;color:white;border-color:#172033}
 .word{font-size:44px;font-weight:750;margin:20px 0 4px;word-break:break-word}.prompt-label{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-top:20px}.prompt{font-size:28px;font-weight:650;line-height:1.35;margin:8px 0 6px}.hint{font-size:18px;color:#667085}.timer{height:7px;background:#e4e7ec;border-radius:99px;overflow:hidden;margin:18px 0}.timer>i{display:block;height:100%;width:100%;background:#172033;transition:width .1s linear}
-.answer{border-top:1px solid #eaecf0;margin-top:20px;padding-top:20px}.ipa{font-size:20px}.meaning{font-size:21px;font-weight:600;margin:10px 0}.example{color:#475467;font-style:italic}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef2ff;margin:4px 4px 0 0;font-size:13px}.footer{margin-top:16px;font-size:12px;color:#98a2b3}
+.answer{border-top:1px solid #eaecf0;margin-top:20px;padding-top:20px}.answer .primary{display:block;width:100%;margin-top:16px}.ipa{font-size:20px}.meaning{font-size:21px;font-weight:600;margin:10px 0}.example{color:#475467;font-style:italic}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef2ff;margin:4px 4px 0 0;font-size:13px}.footer{margin-top:16px;font-size:12px;color:#98a2b3}#app{touch-action:pan-y}
 </style></head>
 <body><div class="wrap"><div class="card">
 <h1>Vocab Recall</h1>
@@ -29,5 +29,19 @@ state.timer=setInterval(()=>{state.left-=.1;document.getElementById("bar").style
 function reveal(){if(state.revealed)return;state.revealed=true;clearInterval(state.timer);const w=state.pool[state.i];$("detail").innerHTML=`<div class="answer"><div><b>${esc(w.word)}</b> <span class="badge">${esc(w.pos||"")}</span></div><div class="ipa">${esc(w.ipa||"")}</div><button onclick='speak(${JSON.stringify(w.word)})'>🔊 Hear pronunciation</button><div class="meaning">${esc(w.meaning||"")}</div><div class="example">${esc(w.example||"")}</div><div>${w.sets.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div><br><button onclick='next()' class="primary">Next</button></div>`;speak(w.word)}
 function next(){if(!state.revealed)return;state.i++;show()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
-$("start").onclick=start;document.addEventListener("click",e=>{if(e.target.id==="reveal")reveal()});load().catch(e=>$("app").innerHTML="<b>Load error.</b> "+esc(e.message));
+$("start").onclick=start;
+document.addEventListener("click",e=>{if(e.target.id==="reveal")reveal()});
+let touchStartX=0,touchStartY=0;
+$("app").addEventListener("touchstart",e=>{
+  if(e.touches.length!==1)return;
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+},{passive:true});
+$("app").addEventListener("touchend",e=>{
+  if(e.changedTouches.length!==1||!state.revealed)return;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(dx<-60&&Math.abs(dx)>Math.abs(dy)*1.2)next();
+},{passive:true});
+load().catch(e=>$("app").innerHTML="<b>Load error.</b> "+esc(e.message));
 </script></body></html>
