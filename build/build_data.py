@@ -116,18 +116,6 @@ for src,rs in lists.items():
         if src=="NGSL":
             x["ngsl_rank"]=r
 
-for x in words.values():
-    r=x["ngsl_rank"]
-    fallback_level=(
-        "A1" if r and r<=600 else
-        "B1" if r and r<=1300 else
-        "B2" if r and r<=2000 else
-        "C1" if r and r<=2500 else
-        "C2"
-    )
-    x["frequency_level"]=fallback_level
-    x["sets"].append(preferred_oxford_level.get(x["word"].lower(),fallback_level))
-
 oxford_pos={}
 for list_name,url in OXFORD_URLS:
     parsed=parse_oxford_pdf(download(url),list_name)
@@ -143,6 +131,18 @@ for key,recs in oxford_pos.items():
     recs=sorted(recs,key=lambda r:(r[0],0 if "3000" in r[1] else 1,r[2]))
     preferred_oxford_pos[key]=recs[0][2]
     preferred_oxford_level[key]=recs[0][3]
+
+for x in words.values():
+    r=x["ngsl_rank"]
+    fallback_level=(
+        "A1" if r and r<=600 else
+        "B1" if r and r<=1300 else
+        "B2" if r and r<=2000 else
+        "C1" if r and r<=2500 else
+        "C2"
+    )
+    x["frequency_level"]=fallback_level
+    x["sets"].append(preferred_oxford_level.get(x["word"].lower(),fallback_level))
 
 db=os.path.join(DATA,"dictionary_en_vi.db")
 open(db,"wb").write(download(DB_URL))
