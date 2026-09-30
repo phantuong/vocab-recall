@@ -249,7 +249,33 @@ PRIMARY_OVERRIDES={
     "may":("Có thể; có lẽ; được phép.","V"),
     "here":("Ở đây; đây.","ADV"),
     "many":("Nhiều; nhiều người/vật.","DET"),
-    "such":("Như vậy; như thế; loại như vậy.","DET")
+    "such":("Như vậy; như thế; loại như vậy.","DET"),
+    "add":("Thêm; thêm vào; cộng.","V"),
+    "which":("Nào; cái nào; điều nào.","PRON"),
+    "off":("Tắt; rời khỏi; nghỉ.","ADV"),
+    "why":("Tại sao; vì sao.","ADV"),
+    "account":("Tài khoản; sự tường thuật; bản kê khai.","N"),
+    "office":("Văn phòng; phòng làm việc.","N"),
+    "leave":("Rời đi; bỏ đi; để lại.","V"),
+    "business":("Kinh doanh; công việc; doanh nghiệp.","N"),
+    "service":("Dịch vụ; sự phục vụ.","N"),
+    "support":("Sự hỗ trợ; sự ủng hộ.","N"),
+    "issue":("Vấn đề; số báo; phát hành.","N"),
+    "action":("Hành động; hoạt động.","N"),
+    "control":("Kiểm soát; sự kiểm soát.","N"),
+    "concern":("Sự quan tâm; lo lắng; mối quan tâm.","N"),
+    "view":("Cảnh; quan điểm; cách nhìn.","N"),
+    "reach":("Đến; đạt tới; với tới.","V"),
+    "pass":("Đi qua; vượt qua; đỗ.","V"),
+    "save":("Cứu; tiết kiệm; lưu.","V"),
+    "heart":("Tim; trái tim.","N"),
+    "culture":("Văn hóa.","N"),
+    "mention":("Đề cập; nhắc đến.","V"),
+    "security":("An ninh; an toàn; bảo mật.","N"),
+    "front":("Phía trước; mặt trước.","N"),
+    "black":("Đen; màu đen.","A"),
+    "sell":("Bán.","V"),
+    "party":("Bữa tiệc; nhóm; đảng.","N")
 }
 
 PRIMARY_EXAMPLE_OVERRIDES={
@@ -273,7 +299,30 @@ PRIMARY_EXAMPLE_OVERRIDES={
     "need":"We need more time.",
     "back":"Please come back tomorrow.",
     "mean":"What does this word mean?",
-    "may":"May I ask a question?"
+    "may":"May I ask a question?",
+    "add":"Please add your name to the list.",
+    "account":"I opened a new bank account.",
+    "office":"I am working in the office today.",
+    "leave":"I have to leave the office at six.",
+    "business":"She works for a small business.",
+    "service":"The hotel provides excellent service.",
+    "support":"Thank you for your support.",
+    "issue":"We need to discuss this issue.",
+    "action":"We need to take action now.",
+    "control":"The manager has control of the project.",
+    "concern":"Customer safety is our main concern.",
+    "view":"The hotel has a beautiful view.",
+    "reach":"We need to reach our target.",
+    "pass":"I hope I can pass the exam.",
+    "save":"Please save the file before you close it.",
+    "heart":"My heart is beating fast.",
+    "culture":"I enjoy learning about Vietnamese culture.",
+    "mention":"She did not mention the problem.",
+    "security":"Data security is very important.",
+    "front":"Please wait in front of the building.",
+    "black":"He is wearing a black shirt.",
+    "sell":"They sell cars in Hanoi.",
+    "party":"We had a small party last night."
 }
 
 def clean_meaning(text):
@@ -310,10 +359,22 @@ def pos_key(pos):
     }.get(p,p)
 
 def lookup(w):
+    override=PRIMARY_OVERRIDES.get(w.lower())
     q.execute("SELECT id FROM words WHERE lower(word)=lower(?) LIMIT 1",(w,))
     a=q.fetchone()
+
+    # Some frequent function words may be missing from the source dictionary.
+    # Keep curated learner meanings even when the local DB has no exact entry.
     if not a:
+        if override:
+            return {
+                "meaning":override[0],
+                "pos":override[1],
+                "example":PRIMARY_EXAMPLE_OVERRIDES.get(w.lower(),""),
+                "ipa":"",
+            }
         return {}
+
     wid=a[0]
     q.execute("""SELECT d.definition,d.pos,wd.example,d.id
                  FROM word_definitions wd
@@ -325,10 +386,9 @@ def lookup(w):
     if not candidates:
         candidates=senses
 
-    selected=None
     ox_pos=preferred_oxford_pos.get(w.lower())
+    selected=None
 
-    override=PRIMARY_OVERRIDES.get(w.lower())
     if override:
         meaning,pos=override
         example=PRIMARY_EXAMPLE_OVERRIDES.get(w.lower(),"")
@@ -346,8 +406,8 @@ def lookup(w):
         else:
             meaning=pos=example=""
 
-    if ox_pos and not override:
-        pos=ox_pos
+        if ox_pos:
+            pos=ox_pos
 
     q.execute(
         "SELECT ipa FROM pronunciations WHERE word_id=? "
@@ -362,7 +422,6 @@ def lookup(w):
         "example":example,
         "ipa":p[0] if p else "",
     }
-
 out=[]
 for x in words.values():
     x.update(lookup(x["word"]))
