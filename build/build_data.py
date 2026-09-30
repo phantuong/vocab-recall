@@ -91,6 +91,6 @@ def lookup(w):
 
 out=[]
 for x in words.values():
- x.update(lookup(x["word"]));x["hint"]=x["word"][0]+"…"+x["word"][-1] if len(x["word"])>2 else x["word"];out.append(x)
+ x.update(lookup(x["word"]));x["hint"]=(x["word"][:1]+"…"+x["word"][-1:] if len(x["word"])<=4 else x["word"][:2]+"…"+x["word"][-1:] if len(x["word"])<=7 else x["word"][:3]+"…"+x["word"][-1:]);out.append(x)
 json.dump(out,open(os.path.join(DATA,"words.json"),"w",encoding="utf-8"),ensure_ascii=False,separators=(",",":"));c.close();os.remove(db)
 print("Generated",len(out),"words")
