@@ -30,7 +30,7 @@ def lookup(w):
  q.execute("SELECT id FROM words WHERE lower(word)=lower(?) LIMIT 1",(w,));a=q.fetchone()
  if not a:return {}
  wid=a[0]
- q.execute("SELECT d.definition,d.pos,wd.example FROM word_definitions wd JOIN definitions d ON d.id=wd.definition_id WHERE wd.word_id=? ORDER BY CASE WHEN d.definition_lang='vi' THEN 0 ELSE 1 END,d.id LIMIT 1",(wid,));d=q.fetchone()
+ q.execute("SELECT d.definition,d.pos,wd.example FROM word_definitions wd JOIN definitions d ON d.id=wd.definition_id WHERE wd.word_id=? AND d.definition_lang='vi' ORDER BY d.id LIMIT 1",(wid,));d=q.fetchone()
  q.execute("SELECT ipa FROM pronunciations WHERE word_id=? ORDER BY CASE WHEN upper(region) IN ('US','GENERAL-AMERICAN','GA','AMERICAN') THEN 0 ELSE 1 END,id LIMIT 1",(wid,));p=q.fetchone()
  return {"meaning":d[0] if d else "","pos":d[1] if d else "","example":d[2] if d else "","ipa":p[0] if p else ""}
 out=[]
