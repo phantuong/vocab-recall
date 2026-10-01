@@ -1,0 +1,34 @@
+name: Hide non-interactive math question visual
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'fix: hide non-interactive math visual') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hide static question illustration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('math.html')
+          s = p.read_text(encoding='utf-8')
+          old = '.visual{min-height:95px;border:1px dashed #d0d5dd;border-radius:18px;padding:14px;margin:10px 0 14px;display:grid;place-items:center;background:#fcfcfd}'
+          new = '.visual{display:none!important}'
+          if old not in s:
+              raise SystemExit('Expected .visual CSS rule not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add math.html
+          git commit -m 'fix: hide non-interactive math visual'
+          git push
