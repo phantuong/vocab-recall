@@ -1,0 +1,39 @@
+name: Apply math question visual fix
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'math.html'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hide non-interactive question illustration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('math.html')
+          s = p.read_text(encoding='utf-8')
+          marker = '.visual{'
+          start = s.find(marker)
+          if start < 0:
+              raise SystemExit('Expected .visual CSS rule not found')
+          end = s.find('}', start)
+          if end < 0:
+              raise SystemExit('Could not find end of .visual CSS rule')
+          s = s[:start] + '.visual{display:none!important}' + s[end+1:]
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add math.html
+          git commit -m 'fix: hide non-interactive math question visual'
+          git push
