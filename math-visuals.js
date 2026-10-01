@@ -94,4 +94,5 @@
   }
   const style=document.createElement('style');style.textContent=`.visual-code{margin:8px 0 16px;padding:14px;border:1px solid #e4e7ec;border-radius:18px;background:#fbfcfe;display:flex;justify-content:center;align-items:center;min-height:86px}.vsvg{max-width:100%;height:auto}.vbox{font-size:32px;text-align:center;line-height:1.7}.vrow{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;font-size:34px;line-height:1.2}.vitem{display:inline-flex;align-items:center;justify-content:center}.vchip{display:inline-flex;min-width:58px;padding:10px 15px;border-radius:14px;background:#f4f0ff;color:#6d28d9;font-size:26px;font-weight:900;margin:5px}.mathbig{font-size:25px;font-weight:900;text-align:center;line-height:1.5}.numberline{font-size:22px;font-weight:900;word-spacing:8px;line-height:1.8}.pencil{font-size:30px}`;document.head.appendChild(style);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+window.mathVisual = visual;
 })();
