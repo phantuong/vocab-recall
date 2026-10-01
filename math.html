@@ -27,4 +27,4 @@ function answer(x){if(answered)return;answered=true;const ok=x===theme.answers[q
 function nextQ(){if(q<theme.answers.length-1){q++;answered=false;renderPractice()}else finish()}
 function finish(){const r=score/theme.answers.length;app.innerHTML='<div class="finish"><div class="stars">'+(r>=.8?'⭐⭐⭐':r>=.6?'⭐⭐':'⭐')+'</div><h2>Hoàn thành!</h2><p>Con đúng <b>'+score+'/'+theme.answers.length+'</b> câu.</p><button class="primary" onclick="startPractice()">🔄 Làm lại</button><button class="secondary" onclick="openTheme('+theme.id+')">📚 Chọn bài khác</button></div>'}
 home();
-</script><script>if(window.mathVisual){window.visual=window.mathVisual;}</script></body></html>
+</script><script>if(window.mathVisual){window.visual=window.mathVisual;}</script><script src="math-options.js?v=1"></script></body></html>
